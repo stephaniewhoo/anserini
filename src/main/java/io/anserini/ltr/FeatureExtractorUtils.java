@@ -80,6 +80,7 @@ public class FeatureExtractorUtils {
 
   /**
    * mainly used for testing
+   * @param queryText tokenized query text with stop words
    * @param queryTokens tokenized query text
    * @param docIds external document ids that you wish to collect; users need to make sure it is present
    * @return
@@ -87,10 +88,11 @@ public class FeatureExtractorUtils {
    * @throws InterruptedException
    * @throws JsonProcessingException
    */
-  public ArrayList<output> extract(List<String> queryTokens, List<String> docIds) throws ExecutionException, InterruptedException, JsonProcessingException {
+  public ArrayList<output> extract(List<String> queryText, List<String> queryTokens, List<String> docIds) throws ExecutionException, InterruptedException, JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper();
     input root = new input();
     root.qid = "-1";
+    root.queryText = queryText;
     root.queryTokens = queryTokens;
     root.docIds = docIds;
     this.lazyExtract(mapper.writeValueAsString(root));
@@ -102,10 +104,11 @@ public class FeatureExtractorUtils {
   /**
    * submit tasks to workers
    * @param qid unique query id; users need to make sure it is not duplicated
+   * @param queryTokens tokenized query text with stop words
    * @param queryTokens tokenized query text
    * @param docIds external document ids that you wish to collect; users need to make sure it is present
    */
-  public void addTask(String qid, List<String> queryTokens, List<String> docIds) {
+  public void addTask(String qid, List<String> queryText, List<String> queryTokens, List<String> docIds) {
     if(tasks.containsKey(qid))
       throw new IllegalArgumentException("existed qid");
     tasks.put(qid, pool.submit(() -> {
@@ -116,7 +119,7 @@ public class FeatureExtractorUtils {
       ObjectMapper mapper = new ObjectMapper();
       List<output> result = new ArrayList<>();
       DocumentContext documentContext = new DocumentContext(reader,fieldsToLoad);
-      QueryContext queryContext = new QueryContext(queryTokens);
+      QueryContext queryContext = new QueryContext(queryText, queryTokens);
 
       for(String docId: docIds) {
         Query q = new TermQuery(new Term(IndexArgs.ID, docId));
@@ -155,7 +158,7 @@ public class FeatureExtractorUtils {
   public String lazyExtract(String jsonString) throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper();
     input root = mapper.readValue(jsonString, input.class);
-    this.addTask(root.qid, root.queryTokens, root.docIds);
+    this.addTask(root.qid, root.queryText, root.queryTokens, root.docIds);
     return root.qid;
   }
 
@@ -228,6 +231,7 @@ public class FeatureExtractorUtils {
 
 class input{
   String qid;
+  List<String> queryText;
   List<String> queryTokens;
   List<String> docIds;
 
@@ -241,6 +245,10 @@ class input{
     return docIds;
   }
 
+  public List<String> getQueryText() {
+    return queryText;
+  }
+
   public List<String> getQueryTokens() {
     return queryTokens;
   }
@@ -251,6 +259,10 @@ class input{
 
   public void setDocIds(List<String> docIds) {
     this.docIds = docIds;
+  }
+
+  public void setQueryText() {
+    this.queryText = queryText;
   }
 
   public void setQueryTokens(List<String> queryTokens) {

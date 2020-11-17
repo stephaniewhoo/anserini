@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class QueryContext {
-    public String queryText;
+    public List<String> queryText;
     public List<String> queryTokens;
     public Map<String,Integer> queryFreqs;
     public int querySize;
@@ -15,9 +15,9 @@ public class QueryContext {
     //todo pre-retrieval feature here
     public Map<String, Float> cache;
 
-    public QueryContext(List<String> queryTokens){
+    public QueryContext(List<String> queryText, List<String> queryTokens){
         this.queryTokens = queryTokens;
-        this.queryText = String.join(",", queryTokens);
+        this.queryText = queryText;
         this.querySize = queryTokens.size();
         this.queryFreqs = new HashMap<>();
         for (String token : queryTokens)
